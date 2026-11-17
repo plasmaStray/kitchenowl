@@ -49,7 +49,7 @@ class _ShoppinglistPageState extends State<ShoppinglistPage> {
             if (item is ShoppinglistItem) ...[
               ListTile(
                 leading: const Icon(Icons.remove_shopping_cart_outlined),
-                title: Text(AppLocalizations.of(ctx)!.remove),
+                title: Text(AppLocalizations.of(ctx)!.shoppingListCheckOff),
                 onTap: () {
                   Navigator.of(ctx).pop();
                   cubit.remove(item);
