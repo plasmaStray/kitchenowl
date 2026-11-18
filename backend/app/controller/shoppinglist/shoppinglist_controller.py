@@ -8,6 +8,7 @@ from app.models import (
     Status,
     Association,
     ShoppinglistItems,
+    HiddenRecentItem,
 )
 from app.helpers import validate_args, authorize_household
 from .schemas import (
@@ -58,7 +59,7 @@ def getShoppinglists(args, household_id):
     for shoppinglist in shoppinglists:
         recentItems[shoppinglist.id] = [
             e.item.obj_to_dict() | {"description": e.description}
-            for e in History.get_recent(shoppinglist.id, args["recent_limit"])
+            for e in getVisibleRecentHistory(shoppinglist.id, args["recent_limit"])
         ]
 
     orderby = [Item.name]
@@ -194,10 +195,54 @@ def getRecentItems(args, id):
         raise NotFoundRequest()
     shoppinglist.checkAuthorized()
 
-    items = History.get_recent(id, args["limit"])
+    items = getVisibleRecentHistory(id, args["limit"])
     return jsonify(
         [e.item.obj_to_dict() | {"description": e.description} for e in items]
     )
+
+
+def getVisibleRecentHistory(shoppinglist_id: int, limit: int):
+    # Apply the limit before filtering so hiding a recent item does not pull an
+    # older item into its place.
+    items = History.get_recent(shoppinglist_id, limit)
+    hidden_ids = {
+        item_id
+        for (item_id,) in db.session.query(HiddenRecentItem.item_id)
+        .filter(HiddenRecentItem.shoppinglist_id == shoppinglist_id)
+        .all()
+    }
+    return [item for item in items if item.item_id not in hidden_ids]
+
+
+@shoppinglist.route("/<int:id>/recent-items/<int:item_id>", methods=["DELETE"])
+@jwt_required()
+def hideRecentItem(id: int, item_id: int):
+    shoppinglist = Shoppinglist.find_by_id(id)
+    if not shoppinglist:
+        raise NotFoundRequest()
+    shoppinglist.checkAuthorized()
+
+    item = Item.find_by_id(item_id)
+    if not item or item.household_id != shoppinglist.household_id:
+        raise NotFoundRequest()
+    if ShoppinglistItems.find_by_ids(shoppinglist.id, item.id):
+        raise InvalidUsage()
+
+    hidden = HiddenRecentItem.find_by_ids(shoppinglist.id, item.id)
+    if not hidden:
+        recent_ids = {
+            history.item_id for history in History.get_recent(shoppinglist.id, 120)
+        }
+        if item.id not in recent_ids:
+            raise NotFoundRequest()
+        HiddenRecentItem(shoppinglist_id=shoppinglist.id, item_id=item.id).save()
+
+    socketio.emit(
+        "shoppinglist_item:recent_hide",
+        {"item_id": item.id, "shoppinglist": shoppinglist.obj_to_dict()},
+        to="household/" + str(shoppinglist.household_id),
+    )
+    return jsonify({"msg": "DONE"})
 
 
 def getSuggestionsBasedOnLastAddedItems(id, item_count):
@@ -390,18 +435,27 @@ def removeShoppinglistItemFunc(
     if not con:
         return None
     description = con.description
-    con.delete()
+    db.session.delete(con)
 
     # Hard removals are not recorded in the history, so the item does not
-    # show up in the recently removed items of the shopping list
+    # show up in the recently removed items of the shopping list.
     if hard:
+        db.session.commit()
         return con
 
     removed_at_datetime = None
     if removed_at:
         removed_at_datetime = datetime.fromtimestamp(removed_at / 1000, timezone.utc)
 
-    History.create_dropped(shoppinglist, item, description, removed_at_datetime)
+    hidden = HiddenRecentItem.find_by_ids(shoppinglist.id, item.id)
+    if hidden:
+        db.session.delete(hidden)
+    db.session.add(
+        History.create_dropped_without_save(
+            shoppinglist, item, description, removed_at_datetime
+        )
+    )
+    db.session.commit()
     return con
 
 

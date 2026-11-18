@@ -70,13 +70,21 @@ class History(Model):
     def create_dropped(
         cls, shoppinglist, item, description: str = "", created_at=None
     ) -> Self:
+        return cls.create_dropped_without_save(
+            shoppinglist, item, description, created_at
+        ).save()
+
+    @classmethod
+    def create_dropped_without_save(
+        cls, shoppinglist, item, description: str = "", created_at=None
+    ) -> Self:
         return cls(
             shoppinglist_id=shoppinglist.id,
             item_id=item.id,
             status=Status.DROPPED,
             description=description,
             created_at=created_at,
-        ).save()
+        )
 
     def obj_to_item_dict(self) -> dict[str, Any]:
         res = self.item.obj_to_dict()

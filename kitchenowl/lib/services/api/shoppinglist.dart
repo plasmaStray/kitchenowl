@@ -43,9 +43,7 @@ extension ShoppinglistApi on ApiService {
     return res.statusCode == 200;
   }
 
-  Future<bool> updateShoppingList(
-    ShoppingList shoppingList,
-  ) async {
+  Future<bool> updateShoppingList(ShoppingList shoppingList) async {
     final res = await post(
       route(shoppinglist: shoppingList),
       jsonEncode(shoppingList.toJson()),
@@ -54,18 +52,13 @@ extension ShoppinglistApi on ApiService {
     return res.statusCode == 200;
   }
 
-  Future<bool> deleteShoppingList(
-    ShoppingList shoppingList,
-  ) async {
+  Future<bool> deleteShoppingList(ShoppingList shoppingList) async {
     final res = await delete(route(shoppinglist: shoppingList));
 
     return res.statusCode == 200;
   }
 
-  Future<bool> putItem(
-    ShoppingList shoppinglist,
-    Item item,
-  ) async {
+  Future<bool> putItem(ShoppingList shoppinglist, Item item) async {
     final Map<String, dynamic> data = {};
     if (item is ItemWithDescription) {
       data['description'] = item.description;
@@ -118,6 +111,18 @@ extension ShoppinglistApi on ApiService {
         if (time != null) 'removed_at': time.toUtc().millisecondsSinceEpoch,
         if (hard) 'hard': true,
       }),
+    );
+
+    return res.statusCode == 200;
+  }
+
+  Future<bool> hideRecentItem(
+    ShoppingList shoppinglist,
+    ItemWithDescription item,
+  ) async {
+    if (item.id == null) return false;
+    final res = await delete(
+      '${route(shoppinglist: shoppinglist)}/recent-items/${item.id}',
     );
 
     return res.statusCode == 200;
@@ -178,5 +183,13 @@ extension ShoppinglistApi on ApiService {
 
   void offShoppinglistItemRemove(dynamic Function(dynamic) handler) {
     socket.off("shoppinglist_item:remove", handler);
+  }
+
+  void onShoppinglistItemRecentHide(dynamic Function(dynamic) handler) {
+    socket.on("shoppinglist_item:recent_hide", handler);
+  }
+
+  void offShoppinglistItemRecentHide(dynamic Function(dynamic) handler) {
+    socket.off("shoppinglist_item:recent_hide", handler);
   }
 }

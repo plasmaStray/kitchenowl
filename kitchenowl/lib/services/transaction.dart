@@ -4,7 +4,7 @@ import 'package:kitchenowl/services/transactions/shoppinglist.dart';
 
 abstract class Transaction<T> extends Model {
   static final Map<String, Transaction Function(Map<String, dynamic>, DateTime)>
-      _transactionTypes = {
+  _transactionTypes = {
     "TransactionShoppingListAddItem": (m, t) =>
         TransactionShoppingListAddItem.fromJson(m, t),
     "TransactionShoppingListDeleteItem": (m, t) =>
@@ -13,6 +13,8 @@ abstract class Transaction<T> extends Model {
         TransactionShoppingListRemoveItems.fromJson(m, t),
     "TransactionShoppingListUpdateItem": (m, t) =>
         TransactionShoppingListUpdateItem.fromJson(m, t),
+    "TransactionShoppingListHideRecentItem": (m, t) =>
+        TransactionShoppingListHideRecentItem.fromJson(m, t),
     "TransactionShoppingListAddRecipeItems": (m, t) =>
         TransactionShoppingListAddRecipeItems.fromJson(m, t),
     "TransactionPlannerAddRecipe": (m, t) =>
@@ -41,16 +43,18 @@ abstract class Transaction<T> extends Model {
             as Transaction<T>;
       } catch (e) {
         return ErrorTransaction<T>(
-            timestamp,
-            map.containsKey('className') ? map['className'] : "ERROR",
-            e.toString());
+          timestamp,
+          map.containsKey('className') ? map['className'] : "ERROR",
+          e.toString(),
+        );
       }
     }
 
     return ErrorTransaction<T>(
-        timestamp,
-        map.containsKey('className') ? map['className'] : "ERROR",
-        "Could not find transaction class");
+      timestamp,
+      map.containsKey('className') ? map['className'] : "ERROR",
+      "Could not find transaction class",
+    );
   }
 
   @override
@@ -58,16 +62,16 @@ abstract class Transaction<T> extends Model {
 
   @override
   Map<String, dynamic> toJson() => {
-        "className": className,
-        "timestamp": timestamp.toIso8601String(),
-      };
+    "className": className,
+    "timestamp": timestamp.toIso8601String(),
+  };
 }
 
 class ErrorTransaction<T> extends Transaction<T> {
   final String message;
 
   const ErrorTransaction(super.timestamp, super.className, [this.message = ""])
-      : super.internal();
+    : super.internal();
 
   @override
   Future<T> runLocal() {

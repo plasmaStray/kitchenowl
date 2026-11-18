@@ -44,6 +44,11 @@ class Shoppinglist(Model, DbModelAuthorizeMixin):
             cascade="all, delete-orphan",
         ),
     )
+    hidden_recent_items = db.relationship(
+        "HiddenRecentItem",
+        back_populates="shoppinglist",
+        cascade="all, delete-orphan",
+    )
 
     @classmethod
     def getDefault(cls, household_id: int) -> Self:

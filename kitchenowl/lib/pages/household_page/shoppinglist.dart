@@ -1,5 +1,6 @@
 import 'package:animations/animations.dart';
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kitchenowl/app.dart';
@@ -34,9 +35,11 @@ class _ShoppinglistPageState extends State<ShoppinglistPage> {
     ShoppinglistCubit cubit,
     Item item, {
     required SettingsState settingsState,
+    bool isRecent = false,
   }) async {
-    final url =
-        item is ItemWithDescription ? extractSingleUrl(item.description) : null;
+    final url = item is ItemWithDescription
+        ? extractSingleUrl(item.description)
+        : null;
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -45,7 +48,28 @@ class _ShoppinglistPageState extends State<ShoppinglistPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (item is ShoppinglistItem) ...[
+            if (isRecent) ...[
+              ListTile(
+                leading: const Icon(Icons.add_shopping_cart_outlined),
+                title: Text(
+                  AppLocalizations.of(ctx)!.shoppingListAddFromRecent,
+                ),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  cubit.add(item);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.visibility_off_outlined),
+                title: Text(
+                  AppLocalizations.of(ctx)!.shoppingListHideRecentItem,
+                ),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  cubit.hideRecentItem(item as ItemWithDescription);
+                },
+              ),
+            ] else if (item is ShoppinglistItem) ...[
               ListTile(
                 leading: const Icon(Icons.remove_shopping_cart_outlined),
                 title: Text(AppLocalizations.of(ctx)!.shoppingListCheckOff),
@@ -72,27 +96,30 @@ class _ShoppinglistPageState extends State<ShoppinglistPage> {
                 Navigator.of(ctx).pop();
                 final res = await Navigator.of(context, rootNavigator: true)
                     .push<UpdateValue<Item>>(
-                  MaterialPageRoute(builder: (innerCtx) {
-                    Widget page = ItemPage(
-                      item: item,
-                      shoppingList: cubit.state.selectedShoppinglist,
-                      categories: cubit.state.categories,
-                      advancedView: ShoppingListStyle(
-                        listStyle: settingsState.listStyle,
-                        isList: settingsState.shoppingListListView,
-                        gridSize: settingsState.gridSize,
-                      ).advancedItemView,
+                      MaterialPageRoute(
+                        builder: (innerCtx) {
+                          Widget page = ItemPage(
+                            item: item,
+                            shoppingList: cubit.state.selectedShoppinglist,
+                            categories: cubit.state.categories,
+                            advancedView: ShoppingListStyle(
+                              listStyle: settingsState.listStyle,
+                              isList: settingsState.shoppingListListView,
+                              gridSize: settingsState.gridSize,
+                            ).advancedItemView,
+                          );
+                          final householdCubit = context
+                              .readOrNull<HouseholdCubit>();
+                          if (householdCubit != null) {
+                            page = BlocProvider.value(
+                              value: householdCubit,
+                              child: page,
+                            );
+                          }
+                          return page;
+                        },
+                      ),
                     );
-                    final householdCubit = context.readOrNull<HouseholdCubit>();
-                    if (householdCubit != null) {
-                      page = BlocProvider.value(
-                        value: householdCubit,
-                        child: page,
-                      );
-                    }
-                    return page;
-                  }),
-                );
                 if (res != null &&
                     (res.state == UpdateEnum.deleted ||
                         res.state == UpdateEnum.updated)) {
@@ -179,18 +206,19 @@ class _ShoppinglistPageState extends State<ShoppinglistPage> {
                       ? const SizedBox()
                       : ChoiceScroll(
                           children: state.shoppinglists.values
-                              .sorted((a, b) =>
-                                  b.items.length.compareTo(a.items.length))
+                              .sorted(
+                                (a, b) =>
+                                    b.items.length.compareTo(a.items.length),
+                              )
                               .map(
                                 (shoppinglist) => ShoppingListChoiceChip(
                                   shoppingList: shoppinglist,
-                                  selected: shoppinglist.id ==
+                                  selected:
+                                      shoppinglist.id ==
                                       state.selectedShoppinglistId,
                                   onSelected: (bool selected) {
                                     if (selected) {
-                                      cubit.setShoppingList(
-                                        shoppinglist,
-                                      );
+                                      cubit.setShoppingList(shoppinglist);
                                     }
                                   },
                                 ),
@@ -204,8 +232,8 @@ class _ShoppinglistPageState extends State<ShoppinglistPage> {
                       text: state.sorting == ShoppinglistSorting.alphabetical
                           ? AppLocalizations.of(context)!.sortingAlphabetical
                           : state.sorting == ShoppinglistSorting.algorithmic
-                              ? AppLocalizations.of(context)!.sortingAlgorithmic
-                              : AppLocalizations.of(context)!.category,
+                          ? AppLocalizations.of(context)!.sortingAlgorithmic
+                          : AppLocalizations.of(context)!.category,
                       icon: const Icon(Icons.sort),
                     ),
                   ),
@@ -238,19 +266,20 @@ class _ShoppinglistPageState extends State<ShoppinglistPage> {
                       previous.listStyle != current.listStyle ||
                       previous.gridSize != current.gridSize,
                   builder: (context, settingsState) => PageTransitionSwitcher(
-                    transitionBuilder: (
-                      Widget child,
-                      Animation<double> animation,
-                      Animation<double> secondaryAnimation,
-                    ) {
-                      return SharedAxisTransition(
-                        animation: animation,
-                        secondaryAnimation: secondaryAnimation,
-                        transitionType: SharedAxisTransitionType.vertical,
-                        fillColor: Colors.transparent,
-                        child: child,
-                      );
-                    },
+                    transitionBuilder:
+                        (
+                          Widget child,
+                          Animation<double> animation,
+                          Animation<double> secondaryAnimation,
+                        ) {
+                          return SharedAxisTransition(
+                            animation: animation,
+                            secondaryAnimation: secondaryAnimation,
+                            transitionType: SharedAxisTransitionType.vertical,
+                            fillColor: Colors.transparent,
+                            child: child,
+                          );
+                        },
                     child: (state is SearchShoppinglistCubitState)
                         ? RefreshIndicator(
                             onRefresh: cubit.refresh,
@@ -270,14 +299,16 @@ class _ShoppinglistPageState extends State<ShoppinglistPage> {
                                   selected: (item) =>
                                       item is ShoppinglistItem &&
                                       (App.settings.shoppingListTapToRemove ||
-                                          !state.selectedListItems
-                                              .contains(item)),
+                                          !state.selectedListItems.contains(
+                                            item,
+                                          )),
                                   isLoading:
                                       state is LoadingShoppinglistCubitState,
                                   onPressed: Nullable((Item item) {
                                     if (item is ShoppinglistItem) {
                                       if (App
-                                          .settings.shoppingListTapToRemove) {
+                                          .settings
+                                          .shoppingListTapToRemove) {
                                         cubit.remove(item);
                                       } else {
                                         cubit.selectItem(item);
@@ -286,39 +317,46 @@ class _ShoppinglistPageState extends State<ShoppinglistPage> {
                                       cubit.add(item);
                                     }
                                   }),
-                                  onLongPressed: Nullable((Item item) =>
-                                      _showItemMenu(context, cubit, item,
-                                          settingsState: settingsState)),
+                                  onLongPressed: Nullable(
+                                    (Item item) => _showItemMenu(
+                                      context,
+                                      cubit,
+                                      item,
+                                      settingsState: settingsState,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
                           )
                         : NestedScrollView(
-                            headerSliverBuilder:
-                                (context, innerBoxIsScrolled) => [
-                              SliverToBoxAdapter(child: header),
-                            ],
+                            headerSliverBuilder: (
+                              context,
+                              innerBoxIsScrolled,
+                            ) => [SliverToBoxAdapter(child: header)],
                             body: RefreshIndicator(
                               onRefresh: cubit.refresh,
                               displacement: 0,
                               child: PageTransitionSwitcher(
-                                transitionBuilder: (
-                                  Widget child,
-                                  Animation<double> animation,
-                                  Animation<double> secondaryAnimation,
-                                ) {
-                                  return SharedAxisTransition(
-                                    animation: animation,
-                                    secondaryAnimation: secondaryAnimation,
-                                    transitionType:
-                                        SharedAxisTransitionType.vertical,
-                                    fillColor: Colors.transparent,
-                                    child: child,
-                                  );
-                                },
+                                transitionBuilder:
+                                    (
+                                      Widget child,
+                                      Animation<double> animation,
+                                      Animation<double> secondaryAnimation,
+                                    ) {
+                                      return SharedAxisTransition(
+                                        animation: animation,
+                                        secondaryAnimation: secondaryAnimation,
+                                        transitionType:
+                                            SharedAxisTransitionType.vertical,
+                                        fillColor: Colors.transparent,
+                                        child: child,
+                                      );
+                                    },
                                 child: CustomScrollView(
                                   key: PageStorageKey<int?>(
-                                      state.selectedShoppinglistId),
+                                    state.selectedShoppinglistId,
+                                  ),
                                   slivers: [
                                     SliverShopinglistItemView(
                                       shoppingListStyle: ShoppingListStyle(
@@ -328,15 +366,17 @@ class _ShoppinglistPageState extends State<ShoppinglistPage> {
                                         gridSize: settingsState.gridSize,
                                       ),
                                       categories: state.categories,
-                                      isLoading: state
-                                          is LoadingShoppinglistCubitState,
+                                      isLoading:
+                                          state
+                                              is LoadingShoppinglistCubitState,
                                       selectedListItems:
                                           state.selectedListItems,
                                       sorting: state.sorting,
                                       shoppingList: state.selectedShoppinglist,
                                       onPressed: Nullable((Item item) {
                                         if (item is ShoppinglistItem) {
-                                          if (App.settings
+                                          if (App
+                                              .settings
                                               .shoppingListTapToRemove) {
                                             cubit.remove(item);
                                           } else {
@@ -346,10 +386,26 @@ class _ShoppinglistPageState extends State<ShoppinglistPage> {
                                           cubit.add(item);
                                         }
                                       }),
-                                      onLongPressed: Nullable((item) =>
-                                          _showItemMenu(context, cubit, item,
-                                              settingsState: settingsState)),
+                                      onLongPressed: Nullable(
+                                        (item) => _showItemMenu(
+                                          context,
+                                          cubit,
+                                          item,
+                                          settingsState: settingsState,
+                                        ),
+                                      ),
                                       onRecentPressed: Nullable(cubit.add),
+                                      onRecentLongPressed: kIsWeb
+                                          ? Nullable(
+                                              (item) => _showItemMenu(
+                                                context,
+                                                cubit,
+                                                item,
+                                                settingsState: settingsState,
+                                                isRecent: true,
+                                              ),
+                                            )
+                                          : null,
                                       onRefresh: cubit.refresh,
                                     ),
                                   ],

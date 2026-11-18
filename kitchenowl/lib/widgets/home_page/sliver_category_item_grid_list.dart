@@ -52,7 +52,9 @@ class _SliverCategoryItemGridListState<T extends Item>
     TextStyle? titleTextStyle = Theme.of(context).textTheme.titleLarge;
     if (widget.isSubTitle)
       titleTextStyle = titleTextStyle?.apply(
-          fontStyle: FontStyle.italic, fontWeightDelta: -1);
+        fontStyle: FontStyle.italic,
+        fontWeightDelta: -1,
+      );
 
     List<Widget> list = [];
     final categoryLength = widget.categories?.length ?? 0;
@@ -60,45 +62,48 @@ class _SliverCategoryItemGridListState<T extends Item>
     if (widget.splitByCategories) {
       for (int i = 0; i < categoryLength + 1; i++) {
         Category? category = i < categoryLength ? widget.categories![i] : null;
-        final List<T> items =
-            widget.items.where((e) => e.category == category).toList();
+        final List<T> items = widget.items
+            .where((e) => e.category == category)
+            .toList();
         if (items.isEmpty) continue;
 
-        list.add(SliverCategoryItemGridList(
-          name: category?.name ?? AppLocalizations.of(context)!.uncategorized,
-          items: items,
+        list.add(
+          SliverCategoryItemGridList(
+            name: category?.name ?? AppLocalizations.of(context)!.uncategorized,
+            items: items,
+            categories: widget.categories,
+            shoppingList: widget.shoppingList,
+            selected: widget.selected,
+            isLoading: widget.isLoading,
+            onRefresh: widget.onRefresh,
+            onPressed: widget.onPressed,
+            onLongPressed: widget.onLongPressed,
+            isSubTitle: true,
+            extraOption: widget.extraOption,
+            shoppingListStyle: widget.shoppingListStyle,
+          ),
+        );
+      }
+    } else
+      list.add(
+        SliverItemGridList<T>(
+          onRefresh: widget.onRefresh,
+          onPressed: widget.onPressed,
+          onLongPressed: widget.onLongPressed,
+          items: widget.items,
           categories: widget.categories,
           shoppingList: widget.shoppingList,
           selected: widget.selected,
           isLoading: widget.isLoading,
-          onRefresh: widget.onRefresh,
-          onPressed: widget.onPressed,
-          isSubTitle: true,
           extraOption: widget.extraOption,
           shoppingListStyle: widget.shoppingListStyle,
-        ));
-      }
-    } else
-      list.add(SliverItemGridList<T>(
-        onRefresh: widget.onRefresh,
-        onPressed: widget.onPressed,
-        onLongPressed: widget.onLongPressed,
-        items: widget.items,
-        categories: widget.categories,
-        shoppingList: widget.shoppingList,
-        selected: widget.selected,
-        isLoading: widget.isLoading,
-        extraOption: widget.extraOption,
-        shoppingListStyle: widget.shoppingListStyle,
-      ));
+        ),
+      );
 
     return SliverExpansionTile(
       title: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Text(
-          widget.name,
-          style: titleTextStyle,
-        ),
+        child: Text(widget.name, style: titleTextStyle),
       ),
       sliver: MultiSliver(children: list),
     );

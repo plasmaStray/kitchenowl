@@ -472,6 +472,8 @@
   "shoppingListEdit": "Редактировать список покупок",
   "shoppingListEmpty": "Список покупок пуст. Добавьте предмет, используя поиск вверху экрана.",
   "shoppingListCheckOff": "Отметить купленным",
+  "shoppingListAddFromRecent": "Добавить в список",
+  "shoppingListHideRecentItem": "Убрать из недавних",
   "shoppingListKeepAwake": "Не выключать экран при покупках",
   "shoppingListRemoveAndForget": "Убрать из списка",
   "shoppingListStyle": "Стиль списка покупок",

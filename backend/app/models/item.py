@@ -85,6 +85,11 @@ class Item(Model, DbModelAuthorizeMixin):
         foreign_keys="Association.consequent_id",
         cascade="all, delete-orphan",
     )
+    hidden_recent_items = db.relationship(
+        "HiddenRecentItem",
+        back_populates="item",
+        cascade="all, delete-orphan",
+    )
 
     def obj_to_dict(
         self,
@@ -119,6 +124,7 @@ class Item(Model, DbModelAuthorizeMixin):
         from app.models import RecipeItems
         from app.models import History
         from app.models import ShoppinglistItems
+        from app.models import HiddenRecentItem
 
         if not self.default_key and other.default_key:
             self.default_key = other.default_key
@@ -160,6 +166,16 @@ class Item(Model, DbModelAuthorizeMixin):
         for history in History.query.filter(History.item_id == other.id).all():
             history.item_id = self.id
             db.session.add(history)
+
+        for hidden in HiddenRecentItem.query.filter(
+            HiddenRecentItem.item_id == other.id
+        ).all():
+            existing = HiddenRecentItem.find_by_ids(hidden.shoppinglist_id, self.id)
+            if existing:
+                db.session.delete(hidden)
+            else:
+                hidden.item_id = self.id
+                db.session.add(hidden)
 
         try:
             db.session.add(self)

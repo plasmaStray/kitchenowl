@@ -14,6 +14,7 @@ class SliverShopinglistItemView extends StatelessWidget {
   final Nullable<void Function(ShoppinglistItem)>? onPressed;
   final Nullable<void Function(ShoppinglistItem)>? onLongPressed;
   final Nullable<void Function(ItemWithDescription)>? onRecentPressed;
+  final Nullable<void Function(ItemWithDescription)>? onRecentLongPressed;
   final ShoppinglistSorting sorting;
   final bool isLoading;
   final List<ShoppinglistItem> selectedListItems;
@@ -27,6 +28,7 @@ class SliverShopinglistItemView extends StatelessWidget {
     this.onPressed,
     this.onLongPressed,
     this.onRecentPressed,
+    this.onRecentLongPressed,
     required this.sorting,
     required this.isLoading,
     required this.selectedListItems,
@@ -61,51 +63,58 @@ class SliverShopinglistItemView extends StatelessWidget {
         Category? category = i < categories.length ? categories[i] : null;
         final List<ShoppinglistItem> items =
             shoppingList?.items.where((e) => e.category == category).toList() ??
-                [];
+            [];
         if (items.isEmpty) continue;
 
-        grids.add(SliverCategoryItemGridList<ShoppinglistItem>(
-          name: category?.name ?? AppLocalizations.of(context)!.uncategorized,
-          items: items,
-          categories: categories,
-          shoppingList: shoppingList,
-          selected: (item) =>
-              App.settings.shoppingListTapToRemove &&
-                  !App.settings.shoppingListListView ||
-              !App.settings.shoppingListTapToRemove &&
-                  App.settings.shoppingListListView ^
-                      !selectedListItems.contains(item),
-          isLoading: isLoading,
-          onRefresh: onRefresh,
-          onPressed: onPressed,
-          onLongPressed: onLongPressed,
-          shoppingListStyle: shoppingListStyle,
-        ));
+        grids.add(
+          SliverCategoryItemGridList<ShoppinglistItem>(
+            name: category?.name ?? AppLocalizations.of(context)!.uncategorized,
+            items: items,
+            categories: categories,
+            shoppingList: shoppingList,
+            selected: (item) =>
+                App.settings.shoppingListTapToRemove &&
+                    !App.settings.shoppingListListView ||
+                !App.settings.shoppingListTapToRemove &&
+                    App.settings.shoppingListListView ^
+                        !selectedListItems.contains(item),
+            isLoading: isLoading,
+            onRefresh: onRefresh,
+            onPressed: onPressed,
+            onLongPressed: onLongPressed,
+            shoppingListStyle: shoppingListStyle,
+          ),
+        );
       }
       main = grids;
     }
-    return SliverMainAxisGroup(slivers: [
-      if (main is List) ...main,
-      if (main is! List) main,
-      if (((shoppingList?.recentItems.isNotEmpty ?? false) &&
-              (App.settings.recentItemsCount > 0)) ||
-          isLoading)
-        SliverCategoryItemGridList<ItemWithDescription>(
-          name: '${AppLocalizations.of(context)!.itemsRecent}:',
-          items: shoppingList?.recentItems
-                  .take(App.settings.recentItemsCount)
-                  .toList() ??
-              [],
-          onPressed: onRecentPressed,
-          categories: categories,
-          shoppingList: shoppingList,
-          onRefresh: onRefresh,
-          isLoading: isLoading,
-          shoppingListStyle: shoppingListStyle,
-          splitByCategories: App.settings.recentItemsCategorize &&
-              !(sorting != ShoppinglistSorting.category ||
-                  isLoading && (shoppingList?.items.isEmpty ?? false)),
-        ),
-    ]);
+    return SliverMainAxisGroup(
+      slivers: [
+        if (main is List) ...main,
+        if (main is! List) main,
+        if (((shoppingList?.recentItems.isNotEmpty ?? false) &&
+                (App.settings.recentItemsCount > 0)) ||
+            isLoading)
+          SliverCategoryItemGridList<ItemWithDescription>(
+            name: '${AppLocalizations.of(context)!.itemsRecent}:',
+            items:
+                shoppingList?.recentItems
+                    .take(App.settings.recentItemsCount)
+                    .toList() ??
+                [],
+            onPressed: onRecentPressed,
+            onLongPressed: onRecentLongPressed,
+            categories: categories,
+            shoppingList: shoppingList,
+            onRefresh: onRefresh,
+            isLoading: isLoading,
+            shoppingListStyle: shoppingListStyle,
+            splitByCategories:
+                App.settings.recentItemsCategorize &&
+                !(sorting != ShoppinglistSorting.category ||
+                    isLoading && (shoppingList?.items.isEmpty ?? false)),
+          ),
+      ],
+    );
   }
 }
