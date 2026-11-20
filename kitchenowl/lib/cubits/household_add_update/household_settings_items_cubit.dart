@@ -5,6 +5,7 @@ import 'package:kitchenowl/kitchenowl.dart';
 import 'package:kitchenowl/models/category.dart';
 import 'package:kitchenowl/models/household.dart';
 import 'package:kitchenowl/models/item.dart';
+import 'package:kitchenowl/models/nullable.dart';
 import 'package:kitchenowl/services/api/api_service.dart';
 import 'package:kitchenowl/services/transaction_handler.dart';
 import 'package:kitchenowl/services/transactions/category.dart';
@@ -68,6 +69,13 @@ class HouseholdSettingsItemsCubit extends Cubit<HouseholdSettingsItemsState> {
     if (item.id != null) {
       if (await ApiService.getInstance()
           .updateItem(item.copyWith(icon: Nullable(icon)))) refresh();
+    }
+  }
+
+  Future<void> setCategory(Item item, Category? category) async {
+    if (item.id != null) {
+      if (await ApiService.getInstance()
+          .updateItem(item.copyWith(category: Nullable(category)))) refresh();
     }
   }
 }

@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:kitchenowl/kitchenowl.dart';
+import 'package:kitchenowl/models/category.dart';
 import 'package:kitchenowl/models/household.dart';
 import 'package:kitchenowl/models/item.dart';
 import 'package:kitchenowl/pages/icon_selection_page.dart';
@@ -7,6 +8,7 @@ import 'package:kitchenowl/pages/item_search_page.dart';
 
 enum _ItemAction {
   changeIcon,
+  changeCategory,
   rename,
   merge,
   delete;
@@ -16,6 +18,8 @@ class ItemPopupMenuButton extends StatelessWidget {
   final Item item;
   final Household? household;
   final void Function(String?) setIcon;
+  final List<Category>? categories;
+  final Future<void> Function(Category?)? setCategory;
   final void Function(String) setName;
   final void Function(Item) mergeItem;
   final void Function() deleteItem;
@@ -26,6 +30,8 @@ class ItemPopupMenuButton extends StatelessWidget {
     required this.item,
     this.household,
     required this.setIcon,
+    this.categories,
+    this.setCategory,
     required this.setName,
     required this.mergeItem,
     required this.deleteItem,
@@ -50,6 +56,11 @@ class ItemPopupMenuButton extends StatelessWidget {
           PopupMenuItem<_ItemAction>(
             value: _ItemAction.changeIcon,
             child: Text(AppLocalizations.of(context)!.changeIcon),
+          ),
+        if (categories != null && setCategory != null)
+          PopupMenuItem<_ItemAction>(
+            value: _ItemAction.changeCategory,
+            child: Text(AppLocalizations.of(context)!.changeCategory),
           ),
         if (item is! RecipeItem && item.id != null)
           PopupMenuItem<_ItemAction>(
@@ -83,6 +94,50 @@ class ItemPopupMenuButton extends StatelessWidget {
           ),
         ));
         if (icon != null) setIcon(icon.value);
+        break;
+      case _ItemAction.changeCategory:
+        final category = await showDialog<Nullable<Category?>>(
+          context: context,
+          builder: (context) {
+            Category? selectedCategory = item.category;
+            return StatefulBuilder(
+              builder: (context, setState) => AlertDialog(
+                title: Text(AppLocalizations.of(context)!.changeCategory),
+                content: DropdownButton<Category?>(
+                  value: selectedCategory,
+                  isExpanded: true,
+                  items: [
+                    DropdownMenuItem(
+                      value: null,
+                      child: Text(AppLocalizations.of(context)!.none),
+                    ),
+                    for (final category in categories!)
+                      DropdownMenuItem(
+                        value: category,
+                        child: Text(category.name),
+                      ),
+                  ],
+                  onChanged: (category) =>
+                      setState(() => selectedCategory = category),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(AppLocalizations.of(context)!.cancel),
+                  ),
+                  TextButton(
+                    onPressed: () =>
+                        Navigator.of(context).pop(Nullable(selectedCategory)),
+                    child: Text(AppLocalizations.of(context)!.done),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+        if (category != null && category.value != item.category) {
+          await setCategory!(category.value);
+        }
         break;
       case _ItemAction.rename:
         final res = await showDialog<String>(

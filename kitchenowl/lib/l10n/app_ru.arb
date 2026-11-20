@@ -270,6 +270,7 @@
   "categories": "Категории",
   "categoriesMerge": "Объединить категории",
   "category": "Категория",
+  "changeCategory": "Изменить категорию",
   "categoryDelete": "Удалить категорию",
   "categoryDeleteConfirmation": "Вы уверены, что хотите удалить {category}? Это действие уберёт категорию из всех предметов.",
   "categoryEdit": "Редактировать категорию",

@@ -58,7 +58,12 @@ class _HouseholdSettingsItemsPageState
                 items: state.items,
                 categories: state.categories,
                 onRefresh: cubit.refresh,
-                extraOption: _itemPopmenuBuilder,
+                extraOption: (item, onMenuVisibilityChanged) =>
+                    _itemPopmenuBuilder(
+                      item,
+                      onMenuVisibilityChanged,
+                      state.categories,
+                    ),
                 shoppingListStyle: const ShoppingListStyle(
                   allRaised: true,
                   advancedItemView: true,
@@ -81,7 +86,12 @@ class _HouseholdSettingsItemsPageState
                   categories: state.categories,
                   onRefresh: cubit.refresh,
                   items: items,
-                  extraOption: _itemPopmenuBuilder,
+                  extraOption: (item, onMenuVisibilityChanged) =>
+                      _itemPopmenuBuilder(
+                        item,
+                        onMenuVisibilityChanged,
+                        state.categories,
+                      ),
                   shoppingListStyle: const ShoppingListStyle(
                     allRaised: true,
                     advancedItemView: true,
@@ -126,10 +136,15 @@ class _HouseholdSettingsItemsPageState
   }
 
   Widget _itemPopmenuBuilder(
-          Item item, ValueChanged<bool> onMenuVisibilityChanged) =>
+    Item item,
+    ValueChanged<bool> onMenuVisibilityChanged,
+    List<Category> categories,
+  ) =>
       ItemPopupMenuButton(
         item: item,
         household: widget.household,
+        categories: categories,
+        setCategory: (category) => cubit.setCategory(item, category),
         onMenuVisibilityChanged: onMenuVisibilityChanged,
         setIcon: (icon) => cubit.setIcon(item, icon),
         setName: (name) => cubit.setName(item, name),
